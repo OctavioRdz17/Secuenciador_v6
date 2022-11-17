@@ -1,15 +1,11 @@
 //+------------------------------------------------------------------+
-//|                                           Secuenciador v5   .mq4 |
-//|                                   Copyright 2022, SkytradersCorp |
-//|                     https://www.facebook.com/OctavioRodriguez17/ |
+//|                                              Secuenciador_v6.mq4 |
+//|                                   Copyright 2022, Toktrading.net |
 //+------------------------------------------------------------------+
-//Se agrego el reseteo de la dualidad en caso de rompimiento de ambos lados
-// corregir no hacer maximo en dualidad
-//borrar los dibujos en inicio
-//en doble rompimiento revisar los maximos y minimos
+//Indicador de secuencia 
 #property copyright "Copyright 2022, Octavio Rodriguez"
-#property link      "https://www.facebook.com/OctavioRodriguez17/"
-#property version   "4.0"
+#property link      "www.toktrading.net"
+#property version   "6.0"
 #property strict
 #property indicator_chart_window
 #property indicator_minimum -5
@@ -26,7 +22,7 @@ void GetSystemTime(int& TimeArray[]);
 
 
 int limitmonth =12;
-int limityear =2029;
+int limityear =2022;
 
 
 //--- plot tendencia
@@ -74,15 +70,19 @@ int limityear =2029;
 
 
 //--- input parameters
-int   timeframe=Period();
-input double   PullbackLevel=28.0;
-input   double MesesDeTendencia = 48;//Semanas de tendencia
-input int PipsRectangulo = 35;//Altura de Rectangulos
-bool expressTrend =  true;
-input int  velasExpress = 200;
-bool reiniciandotendencia =  false;
-input color ColorMaximo = clrSkyBlue;
-input color ColorMinimo = clrCrimson;
+int     timeframe = Period();
+
+input   double PullbackLevel=28.0;
+input   double MesesDeTendencia = 12;//Semanas de tendencia
+input   int PipsRectangulo = 35;//Altura de Rectangulos
+input   int velasExpress = 200;
+        bool expressTrend = true;
+        bool reiniciandotendencia = false;
+input   bool set_alarm  = true;//Alarmas Activadas 
+input   int start_alarm = 8; //Hora de inicio alarmas
+input   int end_alarm =  16; //Hora de fin alarmas
+input   color ColorMaximo = clrSkyBlue;
+input   color ColorMinimo = clrCrimson;
 
 
 //--- indicator buffers
@@ -123,6 +123,10 @@ int barrasActuales =Bars;
 
 bool primerciclo;
 bool startCount;
+
+int last_level = 0;
+int past_level = 0;
+bool starting = true;
 //+------------------------------------------------------------------+
 //| Custom indicator initialization function                         |
 //+------------------------------------------------------------------+
@@ -231,6 +235,7 @@ int OnCalculate(const int rates_total,
             }           
            }
            primerciclo = false;
+           starting =false;
            
       }
       limit = Bars - barrasActuales;
@@ -242,29 +247,30 @@ int OnCalculate(const int rates_total,
       for(int r =0;r<limit;r++)
       {
          //se suma 1 a todas las pociciones para compensar la vela nueva
-         posicionMaximo++;
-         posicionMinimo++;
-         posicionMaximoNuevo++;
-         posicionMinimoNuevo++;
-         posicionMaximoPasado++;
-         posicionMinimoPasado++;
-         barrasActuales++;
+        posicionMaximo++;
+        posicionMinimo++;
+        posicionMaximoNuevo++;
+        posicionMinimoNuevo++;
+        posicionMaximoPasado++;
+        posicionMinimoPasado++;
+        barrasActuales++;
          
-         ciclo = 1;
-         tendenciaCiclo(ciclo);
+        ciclo = 1;
+        tendenciaCiclo(ciclo);
          
-         if( expressTrend == true &&
+        if( expressTrend == true &&
             (posicionMaximo > velasExpress ||  posicionMinimo > velasExpress)){
               //Print("posicionMaximo ="+(string)posicionMaximo+" posicionMinimo ="+(string)posicionMinimo);
               reinicioExpress(velasExpress);
-
             }
 
+
+        
       }
    
   
    
-//--- return value of prev_calculated for next call
+    //--- return value of prev_calculated for next call
    return(rates_total);
   }
 //+------------------------------------------------------------------+
@@ -316,16 +322,18 @@ int OnCalculate(const int rates_total,
 //+------------------------------------------------------------------+
 void dibujarMaximo(int tiempo,double valor)
   {
-   if(tiempo<=4)
-     {
-      string tiempoletra =IntegerToString((Bars -tiempo),0);
-      tiempoletra = StringConcatenate("MAX",tiempoletra);
-      ObjectDelete(tiempoletra);
-      ObjectCreate(0,tiempoletra,OBJ_RECTANGLE,0,iTime(NULL,timeframe,tiempo),valor,iTime(NULL,timeframe,0),(valor-(10*Point)));
-      
-      ObjectSetInteger(0,tiempoletra,OBJPROP_COLOR,ColorMaximo);
-      if(reiniciandotendencia)ObjectSetInteger(0,tiempoletra,OBJPROP_COLOR,clrLightGreen);
-      return;
+    // Agregamos el conteo de los maximos anteriores
+    check_double_level(1,start_alarm,end_alarm);
+    if(tiempo<=4)
+        {
+        string tiempoletra =IntegerToString((Bars -tiempo),0);
+        tiempoletra = StringConcatenate("MAX",tiempoletra);
+        ObjectDelete(tiempoletra);
+        ObjectCreate(0,tiempoletra,OBJ_RECTANGLE,0,iTime(NULL,timeframe,tiempo),valor,iTime(NULL,timeframe,0),(valor-(10*Point)));
+        
+        ObjectSetInteger(0,tiempoletra,OBJPROP_COLOR,ColorMaximo);
+        if(reiniciandotendencia)ObjectSetInteger(0,tiempoletra,OBJPROP_COLOR,clrLightGreen);
+        return;
      }
    string tiempoletra =IntegerToString((Bars -tiempo),0);
    tiempoletra = StringConcatenate("MAX",tiempoletra);
@@ -341,6 +349,7 @@ void dibujarMaximo(int tiempo,double valor)
 //+------------------------------------------------------------------+
 void dibujarMinimo(int tiempo,double valor)
   {
+    check_double_level(-1,start_alarm,end_alarm);
    if(tiempo<=4)
      {
       string tiempoletra =IntegerToString((Bars -tiempo),0);
@@ -1188,5 +1197,46 @@ datetime GetWinLocalDateTime(){
         }
       //barrasActuales = Bars;
       reiniciandotendencia =  false;
+
+}
+
+
+void check_double_level(int new_level,int start_t, int end_t){
+    // Creamos un algoritmo para contar cuando se tienen dos niveles consecutivos
+    // tiene 2 var que son las ultimas velas pasadas last_level,past_level
+
+    if(in_time(start_t,end_t) && !starting){
+        // alarma de maximos consecutivos
+        if (new_level == 1 && last_level == 1 ){
+            // Cuando se dan las condiciones activamos la alarmar
+            past_level = last_level;
+            last_level = new_level;
+            Alert("Posible entrada en el par => "+string(Symbol()));
+            // Print("Posible entrada en el par => "+string(Symbol()));
+        }
+        
+        // alarma de minimos consecutivos
+        if (new_level == -1 && last_level == -1  ){
+            // Cuando se dan las condiciones activamos la alarmar
+            past_level = last_level;
+            last_level = new_level;
+            Alert("Posible entrada en el par => "+string(Symbol()));
+            // Print("Posible entrada en el par => "+string(Symbol()));
+        }
+    }
+
+    past_level = last_level;
+    last_level = new_level;  
+}
+
+// Return true if the time in the range on the parameters
+bool in_time(int start_time,int end_time){
+    int horaEvaluar = TimeHour(iTime(NULL,Period(),0)); ///se toma la hora
+
+    if(horaEvaluar >= start_time  && horaEvaluar < end_time && set_alarm)//if para solo ejecutar en 8 o 12
+     {
+       return true;
+     }
+     return false;
 
 }
