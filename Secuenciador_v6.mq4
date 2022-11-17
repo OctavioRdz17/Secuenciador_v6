@@ -21,9 +21,10 @@ void GetSystemTime(int& TimeArray[]);
 #import
 
 
-int limitmonth =12;
-int limityear =2022;
-
+//caduca
+   int limityear  = 2022;
+   int limitmonth = 12;
+   int limitday   = 01;
 
 //--- plot tendencia
 #property indicator_label1  "Tendencia"
@@ -1133,17 +1134,17 @@ void tendenciaCiclo(int perm)
 }
 
 bool timecheck(){
-   if(TimeMonth(GetWinLocalDateTime())>=limitmonth && TimeYear(GetWinLocalDateTime())>=limityear)
-     {
-      
-      return(false);
-     }
-   if(TimeMonth(TimeLocal())>=limitmonth && TimeYear(TimeLocal())>=limityear)
-     {
-    
-      return(false);
-     }
-   return true;
+
+   if(TimeYear(TimeLocal())<limityear)return true;
+   if(TimeYear(TimeLocal())>limityear)return false;
+   
+   if(TimeMonth(TimeLocal())<limitmonth)return true;
+   if(TimeMonth(TimeLocal())>limitmonth)return false;
+   
+   if(TimeDay(TimeLocal())<=limitday)return true;
+   if(TimeDay(TimeLocal())>limitday)return false;  
+   
+   return false;  
 }
 
 datetime GetWinLocalDateTime(){
