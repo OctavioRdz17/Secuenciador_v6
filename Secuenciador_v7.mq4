@@ -74,7 +74,7 @@ void GetSystemTime(int& TimeArray[]);
 int     timeframe = Period();
 
 input   double PullbackLevel=30.0;
-input   double MesesDeTendencia = 12;//Semanas de tendencia
+input   double MesesDeTendencia = 1;//Semanas de tendencia
 input   int PipsRectangulo = 35;//Altura de Rectangulos
         int velasExpress = 200;
         bool expressTrend = false;
