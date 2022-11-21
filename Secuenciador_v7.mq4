@@ -76,7 +76,7 @@ int     timeframe = Period();
 input   double PullbackLevel=30.0;
 input   double MesesDeTendencia = 1;//Semanas de tendencia
 input   int PipsRectangulo = 35;//Altura de Rectangulos
-        int velasExpress = 200;
+        int velasExpress = 20000;
         bool expressTrend = false;
         bool reiniciandotendencia = false;
 input   bool set_alarm  = true;//Alarmas Activadas 
@@ -225,7 +225,7 @@ int OnCalculate(const int rates_total,
               tendenciaCiclo(ciclo);
               
               //revision para velas expres
-              if((posicionMaximo > (velasExpress+ciclo) ||  posicionMinimo > (velasExpress+ciclo))){
+              if(expressTrend == true && (posicionMaximo > (velasExpress+ciclo) ||  posicionMinimo > (velasExpress+ciclo))){
               //Print("posicionMaximo ="+(string)posicionMaximo+" posicionMinimo ="+(string)posicionMinimo);
               if(posicionMaximo>posicionMinimo){
                   reinicioExpress(posicionMaximo);
