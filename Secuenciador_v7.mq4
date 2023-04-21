@@ -22,8 +22,8 @@ void GetSystemTime(int& TimeArray[]);
 
 
 //caduca
-   int limityear  = 2022;
-   int limitmonth = 12;
+   int limityear  = 2023;
+   int limitmonth = 03;
    int limitday   = 31;
 
 //--- plot tendencia
