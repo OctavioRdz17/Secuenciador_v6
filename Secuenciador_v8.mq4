@@ -171,7 +171,7 @@ int OnInit()
    
    
    barrasIniciales = (int)NormalizeDouble(MesesDeTendencia * multiplicadorSemanas, 0);
-   if (barrasIniciales<=50)barrasIniciales = 300;
+   //if (barrasIniciales<=50)barrasIniciales = 300;
    if(barrasIniciales>=(Bars(NULL,Period())-1))barrasIniciales =  Bars(NULL,Period())-1;
            // parametros iniciales 
            

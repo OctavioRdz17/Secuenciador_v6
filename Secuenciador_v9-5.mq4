@@ -24,7 +24,7 @@ void GetSystemTime(int& TimeArray[]);
 //caduca
    int limityear  = 2023;
    int limitmonth = 5;
-   int limitday   = 31;
+   int limitday   = 13;
 
 //--- plot tendencia
 #property indicator_label1  "Tendencia"
@@ -75,7 +75,7 @@ int     timeframe = Period();
 
 input   double PullbackLevel=30.0;
 input   double MesesDeTendencia = 1;//Semanas de tendencia
-input   int PipsRectangulo = 35;//Altura de Rectangulos
+//input   int PipsRectangulo = 35;//Altura de Rectangulos
         int velasExpress = 20000;
         bool expressTrend = false;
         bool reiniciandotendencia = false;
@@ -159,20 +159,24 @@ int OnInit()
    ObjectsDeleteAll(NULL,"MAX",1,OBJ_RECTANGLE);
       
   //--- Aqui se crea la secuencia inicial
-   int multiplicadorSemanas = 0;
+   double multiplicadorSemanas = 0;
    if(Period() == 1)multiplicadorSemanas = 480  * 15;
    if(Period() == 5)multiplicadorSemanas = 480 * 3;
    if(Period() == 15)multiplicadorSemanas = 480;
    if(Period() == 30)multiplicadorSemanas = 240;
    if(Period() == 60)multiplicadorSemanas = 120;
    if(Period() == 240)multiplicadorSemanas = 30; //4h
-   if(Period() == 1440)multiplicadorSemanas = 1; //1d
+   if(Period() == 1440)multiplicadorSemanas = 7; //1d
    if(Period() == 10080)multiplicadorSemanas = 1;//1w
-   if(Period() == 43200)multiplicadorSemanas = 1/4; //1m
+   if(Period() == 43200)multiplicadorSemanas = 0.3; //1m
    
    
    barrasIniciales = (int)NormalizeDouble(MesesDeTendencia * multiplicadorSemanas, 0);
-   if (barrasIniciales<=20)barrasIniciales = 20;
+   if (barrasIniciales<=21){
+
+        barrasIniciales = 21;
+        Alert("Tiempo de secuencia demasiado corto para graficar se recorre secuencia a 21 velas");
+   }
    if(barrasIniciales>=(Bars(NULL,Period())-1))barrasIniciales =  Bars(NULL,Period())-1;
            // parametros iniciales 
            
@@ -285,18 +289,26 @@ int OnCalculate(const int rates_total,
         {
           distanciaRompimiento = finTendencia - inicioTendencia;
           puntoRetroceso =  finTendencia -(distanciaRompimiento *  PullbackLevel/100);
-          if(velasContar>0)
-          {
-            retrocesoCompararOpen = iLow(NULL,timeframe,iLowest(NULL,timeframe,MODE_OPEN,velasContar,inicioScan));
-            retrocesoCompararClose = iLow(NULL,timeframe,iLowest(NULL,timeframe,MODE_CLOSE,velasContar,inicioScan));
-            if(retrocesoCompararOpen <= retrocesoCompararClose){
-                retrocesoComparar = retrocesoCompararOpen;
-            }else{
-                retrocesoComparar = retrocesoCompararClose;
+          if(bodyLevels == true){
+            if(velasContar>0){
+                retrocesoCompararOpen = iLow(NULL,timeframe,iLowest(NULL,timeframe,MODE_OPEN,velasContar,inicioScan));
+                retrocesoCompararClose = iLow(NULL,timeframe,iLowest(NULL,timeframe,MODE_CLOSE,velasContar,inicioScan));
+                if(retrocesoCompararOpen <= retrocesoCompararClose){
+                    retrocesoComparar = retrocesoCompararOpen;
+                }else{
+                    retrocesoComparar = retrocesoCompararClose;
+                }
             }
-          }
-          else{
+            else{
             retrocesoComparar = elegirMinimo(bodyLevels,inicioScan);
+            }
+          }else{ //CUANDO NO ES CUERPO
+            if(velasContar>0){
+                retrocesoComparar = iLow(NULL,timeframe,iLowest(NULL,timeframe,MODE_LOW,velasContar,inicioScan));
+                }
+                else{
+                retrocesoComparar = iLow(NULL,timeframe,inicioScan);
+                }
           }
           //Comment ("el punto minimo es "+ retrocesoComparar +" \nel punto de retroceso es ="+puntoRetroceso+"\nEl maximo es = "+ finTendencia+"\nEl minimo es = "+inicioTendencia);
           if(retrocesoComparar<=puntoRetroceso)return true;
@@ -307,19 +319,28 @@ int OnCalculate(const int rates_total,
           //sacamos la distancia 
           distanciaRompimiento = inicioTendencia - finTendencia;
           puntoRetroceso =  finTendencia + (distanciaRompimiento * PullbackLevel/100);
-          if(velasContar>0)
-          {
-            retrocesoCompararOpen  = iHigh(NULL,timeframe,iHighest(NULL,timeframe,MODE_OPEN,velasContar,inicioScan));
-            retrocesoCompararClose = iHigh(NULL,timeframe,iHighest(NULL,timeframe,MODE_CLOSE,velasContar,inicioScan));
-            if(retrocesoCompararOpen >= retrocesoCompararClose){
-                retrocesoComparar = retrocesoCompararOpen;
-            }else{
-                retrocesoComparar = retrocesoCompararClose;
+          if(bodyLevels == true){
+        //   if(bodyLevels == true)
+            if(velasContar>0){
+                retrocesoCompararOpen  = iHigh(NULL,timeframe,iHighest(NULL,timeframe,MODE_OPEN,velasContar,inicioScan));
+                retrocesoCompararClose = iHigh(NULL,timeframe,iHighest(NULL,timeframe,MODE_CLOSE,velasContar,inicioScan));
+                if(retrocesoCompararOpen >= retrocesoCompararClose){
+                    retrocesoComparar = retrocesoCompararOpen;
+                }else{
+                    retrocesoComparar = retrocesoCompararClose;
+                }
             }
+            else{
+                retrocesoComparar = elegirMaximo(bodyLevels,inicioScan);
+            } 
+          }else{ //cuando son a las mechas
+            if(velasContar>0){
+                retrocesoComparar = iHigh(NULL,timeframe,iHighest(NULL,timeframe,MODE_HIGH,velasContar,inicioScan));
+                }
+                else{
+                retrocesoComparar = iHigh(NULL,timeframe,inicioScan);
+                } 
           }
-          else{
-            retrocesoComparar = elegirMaximo(bodyLevels,inicioScan);
-          }  
           //Comment ("el punto maximo es "+ retrocesoComparar +" \nel punto de retroceso es ="+puntoRetroceso+"\nEl maximo es = "+ inicioTendencia+"\nEl minimo es = "+finTendencia);
           if(retrocesoComparar>=puntoRetroceso)return true;
         }     
@@ -333,6 +354,12 @@ int OnCalculate(const int rates_total,
 //+------------------------------------------------------------------+
 void dibujarMaximo(int tiempo,double valor)
   {
+    // ancho del rectandgulo
+    double widhtpoints = 10;
+    
+    if(Period()>220)widhtpoints = 25;
+    if(Period()>1430)widhtpoints = 100;
+    if(Period()>8830)widhtpoints = 160;
     // Agregamos el conteo de los maximos anteriores
     check_double_level(1,start_alarm,end_alarm);
     if(tiempo<=4)
@@ -340,7 +367,7 @@ void dibujarMaximo(int tiempo,double valor)
         string tiempoletra =IntegerToString((Bars -tiempo),0);
         tiempoletra = StringConcatenate("MAX",tiempoletra);
         ObjectDelete(tiempoletra);
-        ObjectCreate(0,tiempoletra,OBJ_RECTANGLE,0,iTime(NULL,timeframe,tiempo),valor,iTime(NULL,timeframe,0),(valor-(10*Point)));
+        ObjectCreate(0,tiempoletra,OBJ_RECTANGLE,0,iTime(NULL,timeframe,tiempo),valor,iTime(NULL,timeframe,0),(valor-(widhtpoints*Point)));
         
         ObjectSetInteger(0,tiempoletra,OBJPROP_COLOR,ColorMaximo);
         if(reiniciandotendencia)ObjectSetInteger(0,tiempoletra,OBJPROP_COLOR,clrLightGreen);
@@ -349,7 +376,7 @@ void dibujarMaximo(int tiempo,double valor)
    string tiempoletra =IntegerToString((Bars -tiempo),0);
    tiempoletra = StringConcatenate("MAX",tiempoletra);
    ObjectDelete(tiempoletra);
-   ObjectCreate(0,tiempoletra,OBJ_RECTANGLE,0,iTime(NULL,timeframe,tiempo),valor,iTime(NULL,timeframe,(tiempo-4)),(valor-(10*Point)));
+   ObjectCreate(0,tiempoletra,OBJ_RECTANGLE,0,iTime(NULL,timeframe,tiempo),valor,iTime(NULL,timeframe,(tiempo-4)),(valor-(widhtpoints*Point)));
    
    ObjectSetInteger(0,tiempoletra,OBJPROP_COLOR,ColorMaximo);
    if(reiniciandotendencia)ObjectSetInteger(0,tiempoletra,OBJPROP_COLOR,clrLightGreen);
@@ -360,13 +387,18 @@ void dibujarMaximo(int tiempo,double valor)
 //+------------------------------------------------------------------+
 void dibujarMinimo(int tiempo,double valor)
   {
+    // ancho del rectandgulo
+    double widhtpoints = 10;
+    if(Period()>220)widhtpoints = 25;
+    if(Period()>1430)widhtpoints = 100;
+    if(Period()>8830)widhtpoints = 160;
     check_double_level(-1,start_alarm,end_alarm);
    if(tiempo<=4)
      {
       string tiempoletra =IntegerToString((Bars -tiempo),0);
       tiempoletra = StringConcatenate("MIN",tiempoletra);
       ObjectDelete(tiempoletra);
-      ObjectCreate(0,tiempoletra,OBJ_RECTANGLE,0,iTime(NULL,timeframe,tiempo),valor,iTime(NULL,timeframe,0),(valor+(10*Point)));
+      ObjectCreate(0,tiempoletra,OBJ_RECTANGLE,0,iTime(NULL,timeframe,tiempo),valor,iTime(NULL,timeframe,0),(valor+(widhtpoints*Point)));
       ObjectSetInteger(0,tiempoletra,OBJPROP_COLOR,ColorMinimo);
       if(reiniciandotendencia)ObjectSetInteger(0,tiempoletra,OBJPROP_COLOR,clrOrchid);
       return;
@@ -374,7 +406,7 @@ void dibujarMinimo(int tiempo,double valor)
    string tiempoletra =IntegerToString((Bars -tiempo),0);
    tiempoletra = StringConcatenate("MIN",tiempoletra);
    ObjectDelete(tiempoletra);
-   ObjectCreate(0,tiempoletra,OBJ_RECTANGLE,0,iTime(NULL,timeframe,tiempo),valor,iTime(NULL,timeframe,(tiempo-4)),(valor+(10*Point)));
+   ObjectCreate(0,tiempoletra,OBJ_RECTANGLE,0,iTime(NULL,timeframe,tiempo),valor,iTime(NULL,timeframe,(tiempo-4)),(valor+(widhtpoints*Point)));
    ObjectSetInteger(0,tiempoletra,OBJPROP_COLOR,ColorMinimo);
    if(reiniciandotendencia)ObjectSetInteger(0,tiempoletra,OBJPROP_COLOR,clrOrchid);
   }
