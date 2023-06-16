@@ -22,7 +22,7 @@ void GetSystemTime(int& TimeArray[]);
 
 
 //caduca
-   int limityear  = 2023;
+   int limityear  = 2024;
    int limitmonth = 12;
    int limitday   = 31;
 
